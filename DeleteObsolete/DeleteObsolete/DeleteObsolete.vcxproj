@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="DeleteObsolete.h" />
     <ClInclude Include="header1.h" />
+    <ClInclude Include="tstring.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
