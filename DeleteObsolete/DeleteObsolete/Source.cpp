@@ -23,6 +23,7 @@
 
 long g_nMode; // 0:del(default),  1:bin,  2:move, 3:bringback
 int GetMode();
+void FindTargetRecursive(std::vector<tstring>& pathsHit,  tstring szDirectory, std::vector<tstring>& deletingListFolder, std::vector<tstring>& deletingListExtension);
 
 int main_func(int argc, TCHAR* argv[]);
 int _tmain(int argc, TCHAR* argv[])
@@ -35,11 +36,9 @@ int _tmain(int argc, TCHAR* argv[])
 }
 int main_func(int argc, TCHAR* argv[])
 {
-    tstring s = _T("C:\\code\\git\\vs16_DeleteObsolete\\DeleteObsolete\\DeleteObsolete\\Release");
-    _tprintf(_T("한글\n"));
-    DeleteDirectory(s);
-    //getline(s);
+    //DeleteDirectory(s);
 
+    //getline(s);
     //_tprintf(s.c_str());
     //std::wstring abc = WSTRING(s);
     //int size_s = abc.length();
@@ -47,13 +46,18 @@ int main_func(int argc, TCHAR* argv[])
     //////////////////////////////////////////////////////////////////////////////////////////
     // ready
     
-    //1. 현재 경로(path)
+    // 1. 현재 경로(path)
     TCHAR strTemp_sz[MAX_PATH];
     ::GetModuleFileName(NULL, strTemp_sz, MAX_PATH);
     tstring pathModuleFileName(strTemp_sz);
     tstring pathFolder = pathModuleFileName.substr(0, pathModuleFileName.rfind('\\'));
 
-    //2. Temp folder
+
+    // emk debug 
+    pathFolder = _T("C:\\code\\git\\vs16_DeleteObsolete\\DeleteObsolete\\DeleteObsolete\\Release");
+
+
+    // 2. Obsolete folder
     tstring pathObsolete;
     int pos = pathFolder.rfind('\\');
     if (pos == -1)
@@ -66,20 +70,25 @@ int main_func(int argc, TCHAR* argv[])
         pathObsolete.insert(pos + 1, _T("++Obsolete++"));
     }
 
-    //3. list
-    std::vector<tstring> listFolder_toDelete;
-    listFolder_toDelete.push_back(_T("ipch"));
-    listFolder_toDelete.push_back(_T("debug"));
-    listFolder_toDelete.push_back(_T("release"));
-    listFolder_toDelete.push_back(_T("win32"));
-    listFolder_toDelete.push_back(_T("x64"));
-    listFolder_toDelete.push_back(_T(".vs"));  // vs16
-    std::vector<tstring> listExtention_toDelete;
-    listExtention_toDelete.push_back(_T(".sdf"));
-    listExtention_toDelete.push_back(_T(".suo"));
+    // 3. list keyword
+    std::vector<tstring> keywordsFolder;
+    keywordsFolder.push_back(_T("ipch"));
+    keywordsFolder.push_back(_T("debug"));
+    keywordsFolder.push_back(_T("release"));
+    keywordsFolder.push_back(_T("win32"));
+    keywordsFolder.push_back(_T("x64"));
+    keywordsFolder.push_back(_T(".vs"));  // vs16
+    std::vector<tstring> keywordsExtension;
+    keywordsExtension.push_back(_T(".sdf"));
+    keywordsExtension.push_back(_T(".suo"));
+
+    // 4. list Folders and Files to Delete
+    std::vector<tstring> pathsHit;
+    FindTargetRecursive(pathsHit, pathFolder, keywordsFolder, keywordsExtension);
 
     // end ready
     //----------------------------------------------------------------------------------------
+
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // loop
@@ -103,7 +112,7 @@ int main_func(int argc, TCHAR* argv[])
         case 2: // bring back
         {
             if (GetFileAttributes(pathObsolete.c_str()) == INVALID_FILE_ATTRIBUTES)
-                _tprintf(_T(" This is not obsolete directory to bring back\n"));
+                _tprintf(_T(" There is no obsolete directory to bring back\n"));
 
         }
         break;
@@ -168,4 +177,74 @@ int GetMode()
     {
         return 5;
     }
+}
+
+#include <io.h>
+void FindTargetRecursive(std::vector<tstring>& pathsHit, tstring szDirectory, std::vector<tstring>& deletingListFolder, std::vector<tstring>& deletingListExtension)
+{
+    //7. 현재 폴더(디렉토리)의 파일 목록(리스트) 접근하기
+    std::string path_c_file = STRING(szDirectory) + "\\*";
+    struct _finddata_t c_file;
+    intptr_t hFile = _findfirst(path_c_file.c_str(), &c_file);
+    if (hFile == -1) // no files
+        return;
+
+    do
+    {
+        if (!strcmp(c_file.name, ".") || !strcmp(c_file.name, ".."))
+        {
+            continue;
+        }
+
+        char subPath[MAX_PATH];
+        subPath[0] = '\0';
+        const char* backslash = "\\";
+        strcat_s(subPath, STRING(szDirectory).c_str());
+        strcat_s(subPath, backslash);
+        strcat_s(subPath, c_file.name);
+
+        //8. 경로 분해하기
+        char fdrive[5];
+        char fdir[MAX_PATH];
+        char fname[MAX_PATH];
+        char fext[10];
+        _splitpath_s(subPath, fdrive, 5, fdir, 200, fname, 100, fext, 10);
+        std::string subPathS = subPath;
+
+        // Folder
+        if (!strcmp(fext, ""))
+        {
+            /*
+            std::string dir_rename = STRING(dirtemp);
+            dir_rename.insert(dir_rename.size(), "\\");
+            dir_rename.insert(dir_rename.size(), fname);
+            */
+            bool bHit = false;
+            for (long idx = 0; idx < deletingListFolder.size(); idx++)
+            {
+                if (!strcmpLower(STRING(deletingListFolder[idx]).c_str(), c_file.name))
+                {
+                    pathsHit.push_back(TSTRING(subPathS));
+                    bHit = true;
+                    break;
+                }
+            }
+            if(!bHit)
+                FindTargetRecursive(pathsHit, TSTRING(subPathS), deletingListFolder, deletingListExtension);
+        }
+        // File
+        else
+        {
+            for (long idx = 0; idx < deletingListExtension.size(); idx++)
+            {
+                if (!strcmpLower(STRING(deletingListExtension[idx]).c_str(), fext))
+                {
+                    pathsHit.push_back(TSTRING(subPathS));
+                }
+            }
+        }
+
+    } while (_findnext(hFile, &c_file) == 0);
+    _findclose(hFile);
+    
 }

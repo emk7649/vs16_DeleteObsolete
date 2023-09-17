@@ -5,6 +5,14 @@
 #include <iostream>
 typedef std::basic_string<TCHAR> tstring;
 
+template <typename T>
+tstring TSTRING(T& t)
+{
+    tstring str;
+    str.assign(t.begin(), t.end());
+    return str;
+}
+
 std::string STRING(tstring& t)
 {
     std::string str;

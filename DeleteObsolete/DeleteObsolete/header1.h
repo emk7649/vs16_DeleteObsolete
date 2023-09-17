@@ -1,6 +1,37 @@
 #include <windows.h>
 
-bool dirExists(const std::string& dirName_in)
+int strcmpLower(const char* szcStr1, const char* szcStr2)
+{
+	char Lower1[MAX_PATH];
+	strcpy_s(Lower1, szcStr1);
+	for (int idx = 0; idx < strlen(Lower1); idx++)
+	{
+		Lower1[idx] = tolower(Lower1[idx]);
+	}
+
+	char Lower2[MAX_PATH];
+	strcpy_s(Lower2, szcStr2);
+	for (int idx = 0; idx < strlen(Lower2); idx++)
+	{
+		Lower2[idx] = tolower(Lower2[idx]);
+	}
+
+	return strcmp(Lower1, Lower2);
+}
+void MovePathMakingFolder(const std::string& subPath, const std::string& dir_rename)
+{
+	// create folder
+	for (int cnt = 0; cnt < dir_rename.length(); cnt++)
+	{
+		if (dir_rename.at(cnt) == '\\')
+		{
+			std::string str_temp = dir_rename.substr(0, cnt);
+			::CreateDirectoryA(str_temp.c_str(), NULL);
+		}
+	}
+	rename(subPath.c_str(), dir_rename.c_str());
+}
+bool DoDirExists(const std::string& dirName_in)
 {
 	DWORD ftyp = GetFileAttributesA(dirName_in.c_str());
 	if (ftyp == INVALID_FILE_ATTRIBUTES)
