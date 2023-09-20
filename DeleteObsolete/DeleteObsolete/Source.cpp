@@ -43,13 +43,6 @@ int _tmain(int argc, TCHAR* argv[])
 }
 int main_func(int argc, TCHAR* argv[])
 {
-    //DeleteDirectory(s);
-
-    //getline(s);
-    //_tprintf(s.c_str());
-    //std::wstring abc = WSTRING(s);
-    //int size_s = abc.length();
-
     //////////////////////////////////////////////////////////////////////////////////////////
     // ready
     
@@ -59,10 +52,10 @@ int main_func(int argc, TCHAR* argv[])
     tstring pathModuleFileName(strTemp_sz);
     tstring pathFolder = pathModuleFileName.substr(0, pathModuleFileName.rfind('\\'));
 
-
-    // emk debug 
-    pathFolder = _T("C:\\code\\git\\vs16_DeleteObsolete\\DeleteObsolete\\DeleteObsolete\\Release");
-
+    //// emk debug 
+    //pathFolder = _T("C:\\code\\git\\vs16_DeleteObsolete\\DeleteObsolete\\DeleteObsolete\\Release");
+    _tprintf(_T("Current path:\n"));
+    _tprintf(_T("%s\n"), pathFolder.c_str());
 
     // 2. Obsolete folder
     tstring pathObsolete;
@@ -121,7 +114,8 @@ int main_func(int argc, TCHAR* argv[])
             if (!threadPath.WaitRunEnd())
             {
             }
-            _tprintf(_T("	%.1f [ms]\n"), threadPath.timeTotal);
+            _tprintf(_T("	UserTime:%.1f [ms]	KernalTime:%.1f [ms]\n"), threadPath.timeUser, threadPath.timeKernal);
+            _tprintf(_T("	TotalTime:%.1f [ms]\n"), threadPath.timeTotal);
         }
         return 0;
         case ENUM_MODE::MOVE:
