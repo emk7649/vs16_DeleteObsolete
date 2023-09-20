@@ -1,6 +1,3 @@
-#include "tstring.h"
-#include "header1.h"
-
 #include <cstdio>
 #include <tchar.h>
 #include <windows.h>
@@ -12,6 +9,11 @@
 #include <iostream>
 #include <vector>
 
+#include "tstring.h"
+#include "PROCESS_path.h"
+#include "header1.h"
+#include "ThreadEngine.h"
+
 #ifdef _DEBUG
 //#define new DEBUG_NEW
 #define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
@@ -20,17 +22,22 @@
 #include <cstdlib>
 #include <crtdbg.h>
 
+extern CRITICAL_SECTION g_csLog;
 
-long g_nMode; // 0:del(default),  1:bin,  2:move, 3:bringback
-int GetMode();
+ENUM_MODE GetMode();
 void FindTargetRecursive(std::vector<tstring>& pathsHit,  tstring szDirectory, std::vector<tstring>& deletingListFolder, std::vector<tstring>& deletingListExtension);
 
 int main_func(int argc, TCHAR* argv[]);
 int _tmain(int argc, TCHAR* argv[])
 {
     //_CrtSetBreakAlloc(86);
+
     _tsetlocale(LC_ALL, _T("korean"));
+    InitializeCriticalSection(&g_csLog);
     int exit_code = main_func(argc, argv);
+    DeleteCriticalSection(&g_csLog);
+
+
     _CrtDumpMemoryLeaks();
     return exit_code;
 }
@@ -71,6 +78,7 @@ int main_func(int argc, TCHAR* argv[])
     }
 
     // 3. list keyword
+    // (Not Match Case), 폴더는 정확히 일치, 파일은 확장자 일치
     std::vector<tstring> keywordsFolder;
     keywordsFolder.push_back(_T("ipch"));
     keywordsFolder.push_back(_T("debug"));
@@ -86,6 +94,14 @@ int main_func(int argc, TCHAR* argv[])
     std::vector<tstring> pathsHit;
     FindTargetRecursive(pathsHit, pathFolder, keywordsFolder, keywordsExtension);
 
+    std::vector<tstring> logs;
+    CThreadEngine_ProcessingPaths threadPath;
+    threadPath.m_pathsHit = pathsHit;
+    threadPath.m_pLogs = &logs;
+
+    CThreadEngine_Print threadPrint;
+    threadPrint.m_pLogs = &logs;
+    threadPrint.Run();
     // end ready
     //----------------------------------------------------------------------------------------
 
@@ -95,39 +111,45 @@ int main_func(int argc, TCHAR* argv[])
     //_tprintf(_T("select one (del, move, bring back, bin, bin empty"));
     while (1)
     {
-        int nMode = GetMode();
+        ENUM_MODE nMode = GetMode();
         switch (nMode)
         {
-        case 0: // del
+        case ENUM_MODE::DEL:
         {
+            threadPath.m_nMode = nMode;
+            threadPath.Run();
+            if (!threadPath.WaitRunEnd())
+            {
+            }
+            _tprintf(_T("	%.1f [ms]\n"), threadPath.timeTotal);
         }
         return 0;
-        case 1: // move
+        case ENUM_MODE::MOVE:
         {
             if(pathObsolete == _T(""))
                 _tprintf(_T(" This is not right directory to move\n"));
 
         }
         break;
-        case 2: // bring back
+        case ENUM_MODE::BRING_BACK:
         {
             if (GetFileAttributes(pathObsolete.c_str()) == INVALID_FILE_ATTRIBUTES)
                 _tprintf(_T(" There is no obsolete directory to bring back\n"));
 
         }
-        break;
-        case 3: // bin
+        return 0;
+        case ENUM_MODE::BIN:
         {
         }
         return 0;
-        case 4: // bin empty
+        case ENUM_MODE::BIN_EMPTY:
         {
             //// Blow Trash Bin
             HRESULT hResult;
             hResult = SHEmptyRecycleBin(NULL, NULL, SHERB_NOPROGRESSUI || SHERB_NOCONFIRMATION);
-            break;
         }
-        case 5: // quit
+        break;
+        case ENUM_MODE::QUIT:
             return 0;
         default:;
         }
@@ -143,7 +165,7 @@ int main_func(int argc, TCHAR* argv[])
 
 
 
-int GetMode()
+ENUM_MODE GetMode()
 {
     _tprintf(_T("\nselect one (del, move, bring back, bin, bin empty, quit\n"));
 
@@ -151,32 +173,33 @@ int GetMode()
     getline(std::cin, s);
     if (s == "del")
     {
-        return 0;
+        return ENUM_MODE::DEL;
     }
     if (s == "move")
     {
-        return 1;
+        return ENUM_MODE::MOVE;
     }
-    if (s == "take back")
+    if (s == "bring back")
     {
-        return 2;
+        return ENUM_MODE::BRING_BACK;
     }
     if (s == "bin")
     {
-        return 3;
+        return ENUM_MODE::BIN;
     }
     if (s == "bin empty")
     {
-        return 4;
+        return ENUM_MODE::BIN_EMPTY;
     }
     if (s == "quit")
     {
-        return 5;
+        return ENUM_MODE::QUIT;
     }
     if (s == "q")
     {
-        return 5;
+        return ENUM_MODE::QUIT;
     }
+    return ENUM_MODE::NOTHING;
 }
 
 #include <io.h>
@@ -211,14 +234,11 @@ void FindTargetRecursive(std::vector<tstring>& pathsHit, tstring szDirectory, st
         _splitpath_s(subPath, fdrive, 5, fdir, 200, fname, 100, fext, 10);
         std::string subPathS = subPath;
 
+
         // Folder
-        if (!strcmp(fext, ""))
+        DWORD ftyp = GetFileAttributesA(subPath);
+        if (ftyp != INVALID_FILE_ATTRIBUTES && ftyp & FILE_ATTRIBUTE_DIRECTORY)
         {
-            /*
-            std::string dir_rename = STRING(dirtemp);
-            dir_rename.insert(dir_rename.size(), "\\");
-            dir_rename.insert(dir_rename.size(), fname);
-            */
             bool bHit = false;
             for (long idx = 0; idx < deletingListFolder.size(); idx++)
             {
@@ -229,11 +249,11 @@ void FindTargetRecursive(std::vector<tstring>& pathsHit, tstring szDirectory, st
                     break;
                 }
             }
-            if(!bHit)
+            if (!bHit)
                 FindTargetRecursive(pathsHit, TSTRING(subPathS), deletingListFolder, deletingListExtension);
         }
         // File
-        else
+        else if (ftyp != INVALID_FILE_ATTRIBUTES)
         {
             for (long idx = 0; idx < deletingListExtension.size(); idx++)
             {
@@ -246,5 +266,4 @@ void FindTargetRecursive(std::vector<tstring>& pathsHit, tstring szDirectory, st
 
     } while (_findnext(hFile, &c_file) == 0);
     _findclose(hFile);
-    
 }

@@ -24,6 +24,12 @@
     <ClInclude Include="tstring.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="ThreadEngine.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PROCESS_path.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">

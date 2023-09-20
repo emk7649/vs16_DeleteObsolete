@@ -323,7 +323,7 @@ int DeleteDirectory(const std::string &refcstrRootDirectory, bool bDeleteSubdire
 	{
 		do
 		{
-			if(FileInformation.cFileName[0] != '.')
+			if (_tcscmp(FileInformation.cFileName, _T(".")) && _tcscmp(FileInformation.cFileName, _T("..")))
 			{
 				strFilePath.erase();
 				strFilePath = refcstrRootDirectory + _T("\\") + FileInformation.cFileName;
