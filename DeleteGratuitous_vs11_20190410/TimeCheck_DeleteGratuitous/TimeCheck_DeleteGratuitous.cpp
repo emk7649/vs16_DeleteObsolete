@@ -2,6 +2,7 @@
 #include <tchar.h>
 #include <windows.h>
 
+#include <conio.h>
 #include <locale.h>
 
 int main()
@@ -29,36 +30,36 @@ int main()
     }
 
     // Wait until child process exits.
-    WaitForSingleObject(pi.hProcess, INFINITE);
+	WaitForSingleObject(pi.hProcess, INFINITE);
 
 
-    
-    double UserSeconds, KernalSeconds;
-    LARGE_INTEGER UserTime3, KernelTime3;
-    FILETIME CreationTime, ExitTime, KernalTime, UserTime;
 
-        GetThreadTimes(pi.hThread, &CreationTime, &ExitTime, &KernalTime, &UserTime);
-        UserTime3.LowPart = UserTime.dwLowDateTime;
-        UserTime3.HighPart = UserTime.dwHighDateTime;
-        KernelTime3.LowPart = KernalTime.dwLowDateTime;
-        KernelTime3.HighPart = KernalTime.dwHighDateTime;
+	double UserSeconds, KernalSeconds;
+	LARGE_INTEGER UserTime3, KernelTime3;
+	FILETIME CreationTime, ExitTime, KernalTime, UserTime;
 
-        UserSeconds = ((double)UserTime3.QuadPart) / 10000000.;
-        KernalSeconds = ((double)KernelTime3.QuadPart) / 10000.;
+	GetThreadTimes(pi.hThread, &CreationTime, &ExitTime, &KernalTime, &UserTime);
+	UserTime3.LowPart = UserTime.dwLowDateTime;
+	UserTime3.HighPart = UserTime.dwHighDateTime;
+	KernelTime3.LowPart = KernalTime.dwLowDateTime;
+	KernelTime3.HighPart = KernalTime.dwHighDateTime;
 
-    _tprintf(_T("UserTime, KernalTime :  %.4f [s], %.1f [ms]\n"), UserSeconds, KernalSeconds);
+	UserSeconds = ((double)UserTime3.QuadPart) / 10000000.;
+	KernalSeconds = ((double)KernelTime3.QuadPart) / 10000000.;
 
-     double   TotalSeconds = ((double)KernelTime3.QuadPart + (double)UserTime3.QuadPart) / 10000000.;
-        _tprintf(_T("TotalSeconds :%.4f [s]\n"));
-        
+	_tprintf(_T("UserTime, KernalTime :  %.4f [s], %.4f [s]\n"), UserSeconds, KernalSeconds);
 
-        //_tprintf(_T("TotalSeconds : \n"));
-        //_tprintf(_T("	%.4f [s]\n"), (GetTickCount64() - timePin) / 1000.);
+	double   TotalSeconds = ((double)KernelTime3.QuadPart + (double)UserTime3.QuadPart) / 10000000.;
+	_tprintf(_T("TotalTime :%.4f [s]\n"), TotalSeconds);
 
-    // Close process and thread handles. 
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
 
-    int temp = getchar();
+	//_tprintf(_T("TotalSeconds : \n"));
+	//_tprintf(_T("	%.4f [s]\n"), (GetTickCount64() - timePin) / 1000.);
+
+	// Close process and thread handles. 
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+
+    int temp = _getch();
     return 0;
 }
