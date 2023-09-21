@@ -123,19 +123,17 @@ public:
 	}
 };
 
-class CThreadEngine_Print : public CThreadEngine
+class CThreadEngine_Log : public CThreadEngine
 {
 public:
 	std::vector<tstring>* m_pLogs;
+	HANDLE m_hKill;
 
 	virtual BOOL Process()
 	{
 		while (1)
 		{
-			HANDLE noSet = CreateEvent(NULL, TRUE, FALSE, NULL);
-			DWORD dwEvent = ::WaitForSingleObject(noSet, 500);
-			if (dwEvent == WAIT_OBJECT_0)
-				break;
+			DWORD dwEvent = ::WaitForSingleObject(m_hKill, 500);
 
 			std::vector<tstring> logs;
 
@@ -146,6 +144,12 @@ public:
 			for (long cnt = 0; cnt < logs.size(); cnt++)
 			{
 				_tprintf(_T("%s"), logs[cnt].c_str());
+			}
+
+			if (dwEvent == WAIT_OBJECT_0)
+			{
+				_tprintf(_T("Logs Ended\n"));
+				break;
 			}
 		}
 		return TRUE;

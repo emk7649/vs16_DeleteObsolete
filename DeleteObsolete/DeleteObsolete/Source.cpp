@@ -87,13 +87,19 @@ int main_func(int argc, TCHAR* argv[])
     std::vector<tstring> pathsHit;
     FindTargetRecursive(pathsHit, pathFolder, keywordsFolder, keywordsExtension);
 
+
+    // 5. get Threads ready
     std::vector<tstring> logs;
     CThreadEngine_ProcessingPaths threadPath;
     threadPath.m_pathsHit = pathsHit;
     threadPath.m_pLogs = &logs;
 
-    CThreadEngine_Print threadPrint;
+
+    HANDLE hKill_ThreadLog = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    CThreadEngine_Log threadPrint;
     threadPrint.m_pLogs = &logs;
+    threadPrint.m_hKill = hKill_ThreadLog;
     threadPrint.Run();
     // end ready
     //----------------------------------------------------------------------------------------
@@ -114,10 +120,19 @@ int main_func(int argc, TCHAR* argv[])
             if (!threadPath.WaitRunEnd())
             {
             }
-            _tprintf(_T("	UserTime:%.1f [ms]	KernalTime:%.1f [ms]\n"), threadPath.timeUser, threadPath.timeKernal);
-            _tprintf(_T("	TotalTime:%.1f [ms]\n"), threadPath.timeTotal);
+
+            //_tprintf(_T("	UserTime:%.1f [ms]	KernalTime:%.1f [ms]\n"), threadPath.timeUser, threadPath.timeKernal);
+            //_tprintf(_T("	TotalTime:%.1f [ms]\n"), threadPath.timeTotal);
+            tstring strLine = std::format(_T("    UserTime:%.1f [ms]    KernalTime:%.1f [ms]\n"
+                "    TotalTime:%.1f [ms]\n"
+            ), threadPath.timeUser, threadPath.timeKernal,
+                threadPath.timeTotal);
+
+            EnterCriticalSection(&g_csLog);
+            logs.push_back(strLine);
+            LeaveCriticalSection(&g_csLog);
         }
-        return 0;
+        goto EXIT;
         case ENUM_MODE::MOVE:
         {
             if(pathObsolete == _T(""))
@@ -131,11 +146,11 @@ int main_func(int argc, TCHAR* argv[])
                 _tprintf(_T(" There is no obsolete directory to bring back\n"));
 
         }
-        return 0;
+        goto EXIT;
         case ENUM_MODE::BIN:
         {
         }
-        return 0;
+        goto EXIT;
         case ENUM_MODE::BIN_EMPTY:
         {
             //// Blow Trash Bin
@@ -144,13 +159,17 @@ int main_func(int argc, TCHAR* argv[])
         }
         break;
         case ENUM_MODE::QUIT:
-            return 0;
+            goto EXIT;
         default:;
         }
     }
     
     // end loop
     //----------------------------------------------------------------------------------------
+
+EXIT:;
+    ::SetEvent(hKill_ThreadLog);
+    int getch = _getch();
     return 0;
 }
 
