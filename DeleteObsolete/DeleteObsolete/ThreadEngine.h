@@ -39,9 +39,9 @@ public:
 		UserTime3.HighPart = UserTime.dwHighDateTime;
 		KernelTime3.LowPart = KernalTime.dwLowDateTime;
 		KernelTime3.HighPart = KernalTime.dwHighDateTime;
-		timeUser = ((double)UserTime3.QuadPart) / 10000.; // ms
-		timeKernal = ((double)KernelTime3.QuadPart) / 10000.;
-		timeTotal = timeUser + timeKernal;
+		timeUser = ((double)UserTime3.QuadPart) / 10000000.; // s
+		timeKernal = ((double)KernelTime3.QuadPart) / 10000000.;
+		timeTotal = ((double)UserTime3.QuadPart + (double)KernelTime3.QuadPart) / 10000000.;
 
 		CloseHandle(__hThread);
 		__hThread = NULL;

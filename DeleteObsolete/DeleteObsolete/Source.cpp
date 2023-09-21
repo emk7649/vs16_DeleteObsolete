@@ -123,8 +123,8 @@ int main_func(int argc, TCHAR* argv[])
 
             //_tprintf(_T("	UserTime:%.1f [ms]	KernalTime:%.1f [ms]\n"), threadPath.timeUser, threadPath.timeKernal);
             //_tprintf(_T("	TotalTime:%.1f [ms]\n"), threadPath.timeTotal);
-            tstring strLine = std::format(_T("    UserTime:%.1f [ms]    KernalTime:%.1f [ms]\n"
-                "    TotalTime:%.1f [ms]\n"
+            tstring strLine = std::format(_T("    UserTime:{:.4f} [s]    KernalTime:{:.4f} [s]\n"
+                "    TotalTime:{:.4f} [s]\n"
             ), threadPath.timeUser, threadPath.timeKernal,
                 threadPath.timeTotal);
 
